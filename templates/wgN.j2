@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+
+[Interface]
+ListenPort = {{ item.interface.port | default(1194) }}
+PrivateKey = {{ privkey['content'] | b64decode }}
+{%- if item.interface.ipv4 is defined and item.interface.ipv6 is not defined %}
+Address = {{ item.interface.ipv4 }}
+{%- elif item.interface.ipv4 is not defined and item.interface.ipv6 is defined %}
+Address = {{ item.interface.ipv6 }}
+{%- else %}
+Address = {{ item.interface.ipv4 }}, {{ item.interface.ipv6 }}
+{% endif %}
+{% if item.peers is defined %}
+{% for peer in item.peers %}
+
+[Peer]
+# {{ peer.comment }}
+PublicKey = {{ peer.pubkey }}
+{% if peer.ip is defined and peer.port is defined %}
+Endpoint = [{{ peer.ip }}]:{{ peer.port }}
+{% endif %}
+AllowedIPs = {{ peer.allowed_ips }}
+PersistentKeepalive = {{ peer.persistent | default(25) }}
+{% endfor %}
+{% endif %}

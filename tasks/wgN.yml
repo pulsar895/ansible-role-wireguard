@@ -1,0 +1,55 @@
+---
+# tasks file for wireguard
+- name: récupérer les informations sur la clef privée
+  become: yes
+  register: privkey_file
+  ansible.builtin.stat:
+    path: "{{ privkey_path }}"
+
+- name: générer la paire de clef
+  when: not privkey_file.stat.exists
+  become: yes
+  ansible.builtin.shell: |
+    wg genkey > {{ privkey_path }}
+    cat {{ privkey_path }} | wg pubkey > {{ pubkey_path }}
+
+- name: récupérer la clef privée
+  register: privkey
+  become: yes
+  ansible.builtin.slurp:
+    src: "{{ privkey_path }}"
+
+- name: déployer la configuration des interfaces
+  register: configuration
+  become: yes
+  ansible.builtin.template:
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+    src: wgN.j2
+    dest: /etc/wireguard/{{ item.name }}.conf
+
+- name: gestion du service
+  become: yes
+  vars:
+    server_name: "wg-quick@{{ item.name }}.service"
+  block:
+    - name: activer le service
+      ansible.builtin.systemd:
+        enabled: yes
+        name: "{{ server_name }}"
+
+    - name: démarrer le service
+      check_mode: yes
+      register: check_started
+      ansible.builtin.systemd:
+        state: started
+        name: "{{ server_name }}"
+
+    - name: "redémarrer {{ server_name }}"
+      when:
+        - not check_started.changed
+        - configuration.changed
+      ansible.builtin.systemd:
+        state: restarted
+        name: "{{ server_name }}"

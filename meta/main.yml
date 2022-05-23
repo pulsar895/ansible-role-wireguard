@@ -1,0 +1,16 @@
+galaxy_info:
+  role_name: wireguard
+  author: pulsar89.5
+  description: LXD compatible role allowing the configuration of a wireguard server or client on Debian 11.x.
+  company: ykn.
+
+  license: CC-BY-SA
+  min_ansible_version: 2.11.6
+  platforms:
+    - name: Debian
+      versions:
+        - Bullseye (11.x)
+
+  galaxy_tags:
+    - wireguard
+    - vpn

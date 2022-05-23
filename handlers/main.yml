@@ -1,0 +1,7 @@
+---
+# handlers file for security
+- name: redémarrer nftables.service
+  become: yes
+  ansible.builtin.systemd:
+    state: restarted
+    name: nftables.service

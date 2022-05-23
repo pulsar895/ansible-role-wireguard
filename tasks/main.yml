@@ -1,0 +1,48 @@
+---
+# tasks file for wireguard
+- name: installer wireguard
+  when: instance.system.host is not defined
+  register: wireguard_install
+  become: yes
+  apt:
+    update_cache: yes
+    name: wireguard
+
+- name: installer le module du noyau sur l'hôte
+  when: instance.system.host is defined
+  delegate_to: "{{ instance.system.host.ip }}"
+  become: yes
+  apt:
+    update_cache: yes
+    name: wireguard-dkms
+
+- name: installer l'outil de configuration
+  when: instance.system.host is defined
+  register: wireguard-tools_install
+  become: yes
+  apt:
+    update_cache: yes
+    name: wireguard-tools
+
+- name: créer le dossier /srv/wireguard
+  become: yes
+  ansible.builtin.file:
+    state: directory
+    mode: u=rwx,g=,o=
+    path: /srv/wireguard
+
+- name: inclure la tâche de configuration des interfaces
+  vars:
+    privkey_path: "/srv/wireguard/{{ item.name }}-{{ item.comment | default(inventory_hostname_short) }}.privkey"
+    pubkey_path: "/srv/wireguard/{{ item.name }}-{{ item.comment | default(inventory_hostname_short) }}.pubkey"
+  loop_control:
+    label: "/etc/wireguard/{{ item.name }}.conf"
+  loop: "{{ instance.roles.wireguard }}"
+  include: wgN.yml
+
+- name: inclure le rôle de configuration du pare-feu
+  vars:
+    role: wireguard
+  include_role:
+    name: nftables
+    tasks_from: role
